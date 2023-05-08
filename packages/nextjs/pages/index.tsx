@@ -137,7 +137,6 @@ pabl0cks.eth,0.5`;
     settotalEtherOrTokens(0);
     setInvalidAddresses([]);
     setInvalidTotalEth(0);
-    setStep("Confirm");
 
     const lines = csvText.split("\n").filter(line => line.trim() !== "");
 
@@ -166,6 +165,7 @@ pabl0cks.eth,0.5`;
 
     //fetchUserBalance();
     setShowSummary(true);
+    setStep("Confirm");
 
     // TODO: Connect your application with a Web3 library and interact with the smart contract functions.
     // You can use the `contributors` and `balancesToSend` arrays to call multisendEther or multisendToken functions.
