@@ -41,10 +41,10 @@ const FreeMultiSender = () => {
   const [step, setStep] = useState("Prepare");
   const [showSampleModal, setShowSampleModal] = useState(false);
   const sampleCsvContent = `0xB63dE4b100aA44F054cBe7Be71055E81Ab7f264B,0.0056
-0xC8c30Fa803833dD1Fd6DBCDd91Ed0b301EFf87cF,0.45
+0xC8c30Fa803833dD1Fd6DBCDd91Ed0b301EFf87cF,0.0045
 0x7D52422D3A5fE9bC92D3aE8167097eE09F1b347d,0.049
-0x64c9525A3c3a65Ea88b06f184F074C2499578A7E,1
-pabl0cks.eth,0.5`;
+0x64c9525A3c3a65Ea88b06f184F074C2499578A7E,0.041
+pabl0cks.eth,0.01`;
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
 
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -66,10 +66,6 @@ pabl0cks.eth,0.5`;
       return null;
     }
   }
-
-  // const fetchUserBalance = async () => {
-  //   setUserBalance(balance);
-  // };
 
   const handleExampleClick = () => {
     setShowSampleModal(true);
@@ -103,9 +99,6 @@ pabl0cks.eth,0.5`;
 
   const handleConfirmClick = () => {
     setShouldSend(true);
-    // setShowSummary(false);
-    // setShowTransaction(true);
-    // setStep("Sent");
   };
 
   const Step = ({ title, isActive }: { title: string; isActive: boolean }) => (
@@ -149,7 +142,7 @@ pabl0cks.eth,0.5`;
           setContributors(currentContributors => [...currentContributors, resolvedAddress]);
           setbalancesToSend(currentbalancesToSend => [
             ...currentbalancesToSend,
-            balance ? ethers.utils.parseEther(balanceToSend) : ethers.utils.parseEther("0"),
+            balance ? ethers.utils.parseUnits(balanceToSend, 18) : ethers.utils.parseUnits("0", 18),
           ]);
           settotalEtherOrTokens(currenttotalEtherOrTokens => (currenttotalEtherOrTokens += parseFloat(balanceToSend)));
         } else {
@@ -194,8 +187,8 @@ pabl0cks.eth,0.5`;
           <tbody>
             {contributors.map((address, index) => (
               <tr key={index}>
-                <td className="py-2 pr-4">
-                  <Address address={address} />
+                <td className="py-2 pr-2">
+                  <Address address={address} format="long" />
                 </td>
                 <td>
                   {ethers.utils.formatEther(balancesToSend[index])} {tokenType}
@@ -350,7 +343,7 @@ pabl0cks.eth,0.5`;
             </p>
             <p>
               <a
-                href={`https://etherscan.io/tx/${transactionHash}`}
+                href={`https://sepolia.etherscan.io/tx/${transactionHash}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-blue-600 hover:text-blue-800"
