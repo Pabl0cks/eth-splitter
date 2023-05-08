@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BigNumber, ethers, utils } from "ethers";
+import { BigNumber, ethers } from "ethers";
 import { useAccount } from "wagmi";
 import {
   ArrowUpOnSquareIcon,
@@ -7,12 +7,8 @@ import {
   DocumentTextIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-//const contributors = [];
-//const balancesToSend = [];
-//let totalEtherOrTokens = 0;
-import { Balance } from "~~/components/scaffold-eth";
+import { AddressInput } from "~~/components/scaffold-eth";
 import { useAccountBalance } from "~~/hooks/scaffold-eth";
-//import { Address } from "~~/components/scaffold-eth";
 import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
 
 const tokenAddress = "";
@@ -38,19 +34,38 @@ const FreeMultiSender = () => {
   const [shouldSend, setShouldSend] = useState(false);
   const { address } = useAccount();
   const [showSummary, setShowSummary] = useState(false);
-  const { balance, price, isError, isLoading, onToggleBalance, isEthBalance } = useAccountBalance(address);
+  const [showTransaction, setShowTransaction] = useState(false);
+  const { balance } = useAccountBalance(address);
   const [invalidAddresses, setInvalidAddresses] = useState<string[]>([]);
   const [invalidTotalEth, setInvalidTotalEth] = useState(0);
   const [step, setStep] = useState("Prepare");
   const [showSampleModal, setShowSampleModal] = useState(false);
-  const sampleCsvContent = `0xB63dE4b100aA44F054cBe7Be71055E81Ab7f264B,0.000056
+  const sampleCsvContent = `0xB63dE4b100aA44F054cBe7Be71055E81Ab7f264B,0.0056
 0xC8c30Fa803833dD1Fd6DBCDd91Ed0b301EFf87cF,0.45
 0x7D52422D3A5fE9bC92D3aE8167097eE09F1b347d,0.049
-0x64c9525A3c3a65Ea88b06f184F074C2499578A7E,1`;
+0x64c9525A3c3a65Ea88b06f184F074C2499578A7E,1
+pabl0cks.eth,0.5`;
+  const [transactionHash, setTransactionHash] = useState<string | null>(null);
 
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setTokenType(event.target.value);
   };
+
+  async function resolveENS(name: string) {
+    // Create a separate provider for mainnet
+    const mainnetProvider = new ethers.providers.InfuraProvider("homestead", process.env.INFURA_API_KEY);
+
+    try {
+      const address = await mainnetProvider.resolveName(name);
+      if (!address) {
+        throw new Error("ENS name not found.");
+      }
+      return address;
+    } catch (error) {
+      console.error(`Error resolving ENS name: ${error}`);
+      return null;
+    }
+  }
 
   // const fetchUserBalance = async () => {
   //   setUserBalance(balance);
@@ -88,8 +103,9 @@ const FreeMultiSender = () => {
 
   const handleConfirmClick = () => {
     setShouldSend(true);
-    setShowSummary(false);
-    setStep("Sent");
+    // setShowSummary(false);
+    // setShowTransaction(true);
+    // setStep("Sent");
   };
 
   const Step = ({ title, isActive }: { title: string; isActive: boolean }) => (
@@ -115,7 +131,7 @@ const FreeMultiSender = () => {
     value: totalEtherOrTokens.toString(),
   });
 
-  const handleSendClick = () => {
+  const handleSendClick = async () => {
     setContributors([]);
     setbalancesToSend([]);
     settotalEtherOrTokens(0);
@@ -123,27 +139,26 @@ const FreeMultiSender = () => {
     setInvalidTotalEth(0);
     setStep("Confirm");
 
-    //const balancesToSend = [];
     const lines = csvText.split("\n").filter(line => line.trim() !== "");
-    //totalEtherOrTokens = 0;
 
-    lines.forEach(line => {
-      const [address, balanceToSend] = line.split(",").map(item => item.trim());
+    for (const line of lines) {
+      const [addressOrENS, balanceToSend] = line.split(",").map(item => item.trim());
 
-      if (address && balanceToSend) {
-        if (utils.isAddress(address)) {
-          setContributors(currentContributors => [...currentContributors, address]);
+      if (addressOrENS && balanceToSend) {
+        const resolvedAddress = await resolveENS(addressOrENS);
+        if (resolvedAddress) {
+          setContributors(currentContributors => [...currentContributors, resolvedAddress]);
           setbalancesToSend(currentbalancesToSend => [
             ...currentbalancesToSend,
             balance ? ethers.utils.parseEther(balanceToSend) : ethers.utils.parseEther("0"),
           ]);
           settotalEtherOrTokens(currenttotalEtherOrTokens => (currenttotalEtherOrTokens += parseFloat(balanceToSend)));
         } else {
-          setInvalidAddresses(currentInvalidAddresses => [...currentInvalidAddresses, address]);
+          setInvalidAddresses(currentInvalidAddresses => [...currentInvalidAddresses, addressOrENS]);
           setInvalidTotalEth(currentInvalidTotalEth => (currentInvalidTotalEth += parseFloat(balanceToSend)));
         }
       }
-    });
+    }
 
     console.log("Total Ether or Tokens:", totalEtherOrTokens);
     console.log("Contributors:", contributors);
@@ -157,15 +172,6 @@ const FreeMultiSender = () => {
   };
 
   const SummaryScreen = () => {
-    const addressToBalance = contributors.reduce((acc, address, index) => {
-      acc[address] = balancesToSend[index];
-      return acc;
-    }, {});
-
-    const invalidBalancesToSend = invalidAddresses.map(
-      address => addressToBalance[address] || ethers.utils.parseEther("0"),
-    );
-
     return (
       <div className="bg-white rounded-lg p-8 shadow-md">
         <h2 className="text-2xl font-semibold mb-4">Summary</h2>
@@ -184,13 +190,13 @@ const FreeMultiSender = () => {
           </div>
         </div>
         <h3 className="font-semibold mb-2">Recipients:</h3>
-        <table className="table-auto mb-4">
+        <table className="table-auto mb-4 w-full">
           <tbody>
             {contributors.map((address, index) => (
-              <tr key={index} className={index < contributors.length - 1 ? "border-b border-gray-200" : ""}>
+              <tr key={index}>
                 <td className="py-2 pr-4">
                   <a href={`https://etherscan.io/address/${address}`} target="_blank" rel="noreferrer">
-                    {address}
+                    <AddressInput value={address} />
                   </a>
                 </td>
                 <td>
@@ -227,19 +233,19 @@ const FreeMultiSender = () => {
         )}
 
         <button
-          onClick={handleConfirmClick}
-          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
-        >
-          Confirm
-        </button>
-        <button
           onClick={() => {
             setShowSummary(false);
             setStep("Prepare");
           }}
-          className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded ml-4"
+          className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded mr-4"
         >
           Go back
+        </button>
+        <button
+          onClick={handleConfirmClick}
+          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+        >
+          Confirm
         </button>
       </div>
     );
@@ -247,21 +253,40 @@ const FreeMultiSender = () => {
 
   useEffect(() => {
     if (shouldSend) {
-      if (tokenType === "ETH") {
-        multisendEtherTx.writeAsync();
-        setShouldSend(false);
-      } else {
-        multisendTokenTx.writeAsync();
-        setShouldSend(false);
-      }
+      const sendTransaction = async () => {
+        let tx;
+        try {
+          if (tokenType === "ETH") {
+            tx = await multisendEtherTx.writeAsync();
+          } else {
+            tx = await multisendTokenTx.writeAsync();
+          }
+        } catch (error) {
+          console.error("Error sending transaction:", error);
+          // You can handle the error here or display a message to the user.
+          return;
+        }
+
+        if (tx) {
+          setTransactionHash(tx.hash);
+          setShowSummary(false);
+          setShowTransaction(true);
+          setStep("Sent");
+        } else {
+          console.error("Transaction not created.");
+          // You can handle this case here or display a message to the user.
+        }
+      };
+      sendTransaction();
+      setShouldSend(false);
     }
   }, [shouldSend, tokenType, multisendEtherTx, multisendTokenTx]);
 
   // ... return statement
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl mb-4">Multi-Sender</h1>
+    <div style={{ maxWidth: "53em" }} className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl mb-4">ETH Splitter</h1>
       <div className="flex mb-6">
         <Step title="Prepare" isActive={step === "Prepare"} />
         <Step title="Confirm" isActive={step === "Confirm"} />
@@ -316,6 +341,37 @@ const FreeMultiSender = () => {
 
       {showSummary ? (
         <SummaryScreen />
+      ) : showTransaction ? (
+        step === "Sent" &&
+        transactionHash && (
+          <div className="bg-white rounded-lg p-8 shadow-md">
+            <h2 className="text-2xl font-semibold mb-4">Transaction Sent</h2>
+            <p>
+              The transaction has been sent and is waiting to be mined. You can review the transaction details on
+              Etherscan:
+            </p>
+            <p>
+              <a
+                href={`https://etherscan.io/tx/${transactionHash}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-blue-600 hover:text-blue-800"
+              >
+                View on Etherscan
+              </a>
+            </p>
+            <button
+              onClick={() => {
+                setShowSummary(false);
+                setStep("Prepare");
+                setShowTransaction(false);
+              }}
+              className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 mt-8 rounded"
+            >
+              Create new split
+            </button>
+          </div>
+        )
       ) : (
         <>
           <div className="mb-4">
@@ -344,7 +400,7 @@ const FreeMultiSender = () => {
               id="csv-data"
               value={csvText}
               onChange={e => setCsvText(e.target.value)}
-              className="block w-full border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500"
+              className="block w-full border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500 cursor-text focus:outline-none"
               rows={10}
             />
             <div className="absolute top-0 right-0 mt-2 mr-2">

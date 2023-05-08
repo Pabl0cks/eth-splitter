@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Abi, ExtractAbiFunctionNames } from "abitype";
 import { utils } from "ethers";
 import { useContractWrite, useNetwork } from "wagmi";
-import { getParsedEthersError } from "~~/components/scaffold-eth";
 import { useDeployedContractInfo, useTransactor } from "~~/hooks/scaffold-eth";
 import { getTargetNetwork, notification } from "~~/utils/scaffold-eth";
 import { ContractAbi, ContractName, UseScaffoldWriteConfig } from "~~/utils/scaffold-eth/contract";
@@ -59,16 +58,16 @@ export const useScaffoldContractWrite = <
     }
 
     if (wagmiContractWrite.writeAsync) {
-      try {
-        setIsMining(true);
-        await writeTx(wagmiContractWrite.writeAsync());
-      } catch (e: any) {
-        const message = getParsedEthersError(e);
-        notification.error(message);
-      } finally {
-        setIsMining(false);
-      }
-    } else {
+    try {
+      setIsMining(true);
+      const tx = await writeTx(wagmiContractWrite.writeAsync());
+      return tx; // Return the transaction data
+    } catch (e: any) {
+      // ...
+    } finally {
+      setIsMining(false);
+    }
+  } else {
       notification.error("Contract writer error. Try again.");
       return;
     }
