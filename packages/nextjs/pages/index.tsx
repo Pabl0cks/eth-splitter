@@ -7,7 +7,7 @@ import {
   DocumentTextIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { AddressInput } from "~~/components/scaffold-eth";
+import { Address } from "~~/components/scaffold-eth";
 import { useAccountBalance } from "~~/hooks/scaffold-eth";
 import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
 
@@ -195,9 +195,7 @@ pabl0cks.eth,0.5`;
             {contributors.map((address, index) => (
               <tr key={index}>
                 <td className="py-2 pr-4">
-                  <a href={`https://etherscan.io/address/${address}`} target="_blank" rel="noreferrer">
-                    <AddressInput value={address} />
-                  </a>
+                  <Address address={address} />
                 </td>
                 <td>
                   {ethers.utils.formatEther(balancesToSend[index])} {tokenType}
