@@ -313,7 +313,7 @@ pabl0cks.eth,0.01`;
           Go back
         </button>
 
-        {!isApproved && (
+        {!isApproved && tokenType !== "ETH" && (
           <button
             onClick={handleApprovalClick}
             className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded mr-4"
@@ -324,9 +324,9 @@ pabl0cks.eth,0.01`;
         <button
           onClick={handleConfirmClick}
           className={`bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded ${
-            !isApproved ? "opacity-50 cursor-not-allowed" : ""
+            !isApproved && tokenType !== "ETH" ? "opacity-50 cursor-not-allowed" : ""
           }`}
-          disabled={!isApproved}
+          disabled={!isApproved && tokenType !== "ETH"}
         >
           Confirm
         </button>
