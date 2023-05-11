@@ -179,15 +179,15 @@ pabl0cks.eth,0.01`;
 
   const handleApprovalClick = async () => {
     if (approvalTx && approvalTx.writeAsync) {
-      await approvalTx
-        .writeAsync()
-        .then(response => {
-          console.log(response);
-          setIsApproved(true); // Set isApproved to true after successful transaction
-        })
-        .catch(error => {
-          console.error(error);
-        });
+      const response = await approvalTx.writeAsync();
+      const receipt = await response.wait(); // wait for transaction confirmation
+      console.log(receipt);
+      if (receipt.status === 1) {
+        // check transaction status
+        setIsApproved(true);
+      } else {
+        console.error("Transaction failed.");
+      }
     }
   };
 
