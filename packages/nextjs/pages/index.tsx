@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { BigNumber, ethers } from "ethers";
 import { useAccount } from "wagmi";
+import { erc20ABI } from "wagmi";
+import { useBalance, useContractRead, useContractWrite, useProvider } from "wagmi";
 import {
   ArrowUpOnSquareIcon,
   ClipboardDocumentListIcon,
@@ -11,18 +13,15 @@ import { Address } from "~~/components/scaffold-eth";
 import { useAccountBalance } from "~~/hooks/scaffold-eth";
 import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
 
-const tokenAddress = "";
-
 const tokenTypes = [
   {
     value: "ETH",
     label: "ETH",
   },
-  // commented for now until logic is added
-  // {
-  //   value: "ERC-20",
-  //   label: "ERC-20",
-  // },
+  {
+    value: "ERC-20",
+    label: "ERC-20",
+  },
 ];
 
 const FreeMultiSender = () => {
@@ -33,6 +32,7 @@ const FreeMultiSender = () => {
   const [totalEtherOrTokens, settotalEtherOrTokens] = useState(0);
   const [shouldSend, setShouldSend] = useState(false);
   const { address } = useAccount();
+  const provider = useProvider();
   const [showSummary, setShowSummary] = useState(false);
   const [showTransaction, setShowTransaction] = useState(false);
   const { balance } = useAccountBalance(address);
@@ -46,6 +46,7 @@ const FreeMultiSender = () => {
 0x64c9525A3c3a65Ea88b06f184F074C2499578A7E,0.041
 pabl0cks.eth,0.01`;
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
+  const [erc20Address, setErc20Address] = useState("");
 
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setTokenType(event.target.value);
@@ -114,7 +115,60 @@ pabl0cks.eth,0.01`;
   const multisendTokenTx = useScaffoldContractWrite({
     contractName: "FreeMultiSender",
     functionName: "multisendToken",
-    args: [tokenAddress, contributors, balancesToSend],
+    args: [erc20Address, contributors, balancesToSend],
+  });
+
+  const { data: tokenBalanceData } = useBalance({
+    address: address,
+    token: erc20Address,
+    chainId: provider.network.chainId,
+    watch: true,
+  });
+
+  const tokenBalance = tokenBalanceData?.formatted ?? "Loading...";
+
+  const { data: tokenSymbol } = useContractRead({
+    chainId: provider.network.chainId, // replace with your chainId
+    address: erc20Address,
+    abi: erc20ABI,
+    functionName: "symbol",
+  });
+
+  const { data: tokenDecimalsData } = useContractRead({
+    abi: erc20ABI,
+    address: erc20Address,
+    functionName: "decimals",
+  });
+
+  let tokenDecimals = tokenDecimalsData;
+
+  // If tokenDecimals is undefined, set it to 18
+  if (tokenDecimals === undefined) {
+    tokenDecimals = 18;
+  }
+
+  // const { data: allowance } = useContractRead({
+  //   contractAddress: erc20Address,
+  //   abi: erc20ABI,
+  //   functionName: "allowance",
+  //   args: [
+  //     address,
+  //     /*Your contract address*/
+  //     "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+  //   ],
+  // });
+
+  const approvalTx = useContractWrite({
+    mode: "recklesslyUnprepared",
+    address: erc20Address,
+    abi: erc20ABI,
+    functionName: "approve",
+    args: [
+      /*Your contract address*/
+      "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      /*Quantity to approve*/
+      ethers.utils.parseUnits(totalEtherOrTokens.toString(), tokenDecimals),
+    ],
   });
 
   const multisendEtherTx = useScaffoldContractWrite({
@@ -139,12 +193,22 @@ pabl0cks.eth,0.01`;
       if (addressOrENS && balanceToSend) {
         const resolvedAddress = await resolveENS(addressOrENS);
         if (resolvedAddress) {
+          console.log("currenttotalEtherOrTokens: " + totalEtherOrTokens.toString());
+          console.log("balanceToSend: " + parseFloat(balanceToSend).toString());
           setContributors(currentContributors => [...currentContributors, resolvedAddress]);
           setbalancesToSend(currentbalancesToSend => [
             ...currentbalancesToSend,
-            balance ? ethers.utils.parseUnits(balanceToSend, 18) : ethers.utils.parseUnits("0", 18),
+            balance
+              ? ethers.utils.parseUnits(balanceToSend, tokenDecimals)
+              : ethers.utils.parseUnits("0", tokenDecimals),
           ]);
-          settotalEtherOrTokens(currenttotalEtherOrTokens => (currenttotalEtherOrTokens += parseFloat(balanceToSend)));
+          settotalEtherOrTokens(currenttotalEtherOrTokens => {
+            const newTotal = ethers.utils
+              .parseUnits(currenttotalEtherOrTokens.toString(), tokenDecimals)
+              .add(ethers.utils.parseUnits(balanceToSend.toString(), tokenDecimals));
+            const newTotalFloat = parseFloat(ethers.utils.formatUnits(newTotal, tokenDecimals));
+            return newTotalFloat;
+          });
         } else {
           setInvalidAddresses(currentInvalidAddresses => [...currentInvalidAddresses, addressOrENS]);
           setInvalidTotalEth(currentInvalidTotalEth => (currentInvalidTotalEth += parseFloat(balanceToSend)));
@@ -156,12 +220,8 @@ pabl0cks.eth,0.01`;
     console.log("Contributors:", contributors);
     console.log("balancesToSend:", balancesToSend);
 
-    //fetchUserBalance();
     setShowSummary(true);
     setStep("Confirm");
-
-    // TODO: Connect your application with a Web3 library and interact with the smart contract functions.
-    // You can use the `contributors` and `balancesToSend` arrays to call multisendEther or multisendToken functions.
   };
 
   const SummaryScreen = () => {
@@ -170,12 +230,12 @@ pabl0cks.eth,0.01`;
         <h2 className="text-2xl font-semibold mb-4">Summary</h2>
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-gray-100 rounded p-4">
-            <h3>Total {tokenType} to send:</h3>
+            <h3>Total {tokenType === "ETH" ? tokenType : tokenSymbol} to send:</h3>
             <p>{totalEtherOrTokens}</p>
           </div>
           <div className="bg-gray-100 rounded p-4">
-            <h3>Your {tokenType} balance:</h3>
-            <p>{balance}</p>
+            <h3>Your {tokenType === "ETH" ? tokenType : tokenSymbol} balance:</h3>
+            <p>{tokenType === "ETH" ? balance : tokenBalance}</p>
           </div>
           <div className="bg-gray-100 rounded p-4">
             <h3>Total valid addresses:</h3>
@@ -191,7 +251,7 @@ pabl0cks.eth,0.01`;
                   <Address address={address} format="long" />
                 </td>
                 <td>
-                  {ethers.utils.formatEther(balancesToSend[index])} {tokenType}
+                  {ethers.utils.formatEther(balancesToSend[index])} {tokenType === "ETH" ? tokenType : tokenSymbol}
                 </td>
               </tr>
             ))}
@@ -247,14 +307,19 @@ pabl0cks.eth,0.01`;
       const sendTransaction = async () => {
         let tx;
         try {
+          console.log("tokenType: " + tokenType);
           if (tokenType === "ETH") {
             tx = await multisendEtherTx.writeAsync();
           } else {
+            console.log("erc20Address: " + erc20Address);
+            console.log("totalEtherOrTokens: " + totalEtherOrTokens.toString());
+            if (approvalTx && approvalTx.writeAsync) {
+              await approvalTx.writeAsync();
+            }
             tx = await multisendTokenTx.writeAsync();
           }
         } catch (error) {
           console.error("Error sending transaction:", error);
-          // You can handle the error here or display a message to the user.
           return;
         }
 
@@ -265,15 +330,13 @@ pabl0cks.eth,0.01`;
           setStep("Sent");
         } else {
           console.error("Transaction not created.");
-          // You can handle this case here or display a message to the user.
         }
       };
+
       sendTransaction();
       setShouldSend(false);
     }
-  }, [shouldSend, tokenType, multisendEtherTx, multisendTokenTx]);
-
-  // ... return statement
+  }, [shouldSend, tokenType, multisendEtherTx, multisendTokenTx, approvalTx, erc20Address, totalEtherOrTokens]);
 
   return (
     <div style={{ maxWidth: "53em" }} className="container mx-auto px-4 py-8">
@@ -366,7 +429,7 @@ pabl0cks.eth,0.01`;
       ) : (
         <>
           <div className="mb-4">
-            <label htmlFor="token-type" className="block mb-2">
+            <label htmlFor="token-type" className="block mb-2 font-bold">
               Token Type
             </label>
             <select
@@ -381,10 +444,25 @@ pabl0cks.eth,0.01`;
                 </option>
               ))}
             </select>
+            {tokenType === "ERC-20" && (
+              <div className="mb-4 mt-4">
+                <label htmlFor="erc20-address" className="block mb-2 font-bold">
+                  Token Address
+                </label>
+                <input
+                  id="erc20-address"
+                  value={erc20Address}
+                  onChange={e => setErc20Address(e.target.value)}
+                  type="text"
+                  className="block w-full border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Enter ERC-20 token address"
+                />
+              </div>
+            )}
           </div>
 
           <div className="relative mb-4">
-            <label htmlFor="csv-data" className="block mb-2">
+            <label htmlFor="csv-data" className="block mb-2 font-bold">
               CSV Data
             </label>
             <textarea
