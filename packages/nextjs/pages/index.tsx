@@ -47,6 +47,7 @@ const FreeMultiSender = () => {
 pabl0cks.eth,0.01`;
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [erc20Address, setErc20Address] = useState("");
+  const [isApproved, setIsApproved] = useState(false);
 
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setTokenType(event.target.value);
@@ -147,16 +148,21 @@ pabl0cks.eth,0.01`;
     tokenDecimals = 18;
   }
 
-  // const { data: allowance } = useContractRead({
-  //   contractAddress: erc20Address,
-  //   abi: erc20ABI,
-  //   functionName: "allowance",
-  //   args: [
-  //     address,
-  //     /*Your contract address*/
-  //     "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-  //   ],
-  // });
+  const { data: allowance } = useContractRead({
+    address: erc20Address,
+    abi: erc20ABI,
+    functionName: "allowance",
+    args: [
+      (address || "0x0").toString(),
+      /*Your contract address*/
+      "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    ],
+  });
+
+  const needApproval =
+    tokenType !== "ETH" &&
+    allowance &&
+    allowance.lt(ethers.utils.parseUnits(totalEtherOrTokens.toString(), tokenDecimals));
 
   const approvalTx = useContractWrite({
     mode: "recklesslyUnprepared",
@@ -170,6 +176,20 @@ pabl0cks.eth,0.01`;
       ethers.utils.parseUnits(totalEtherOrTokens.toString(), tokenDecimals),
     ],
   });
+
+  const handleApprovalClick = async () => {
+    if (approvalTx && approvalTx.writeAsync) {
+      await approvalTx
+        .writeAsync()
+        .then(response => {
+          console.log(response);
+          setIsApproved(true); // Set isApproved to true after successful transaction
+        })
+        .catch(error => {
+          console.error(error);
+        });
+    }
+  };
 
   const multisendEtherTx = useScaffoldContractWrite({
     contractName: "FreeMultiSender",
@@ -292,9 +312,21 @@ pabl0cks.eth,0.01`;
         >
           Go back
         </button>
+
+        {!isApproved && (
+          <button
+            onClick={handleApprovalClick}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded mr-4"
+          >
+            Approve use of {tokenSymbol}
+          </button>
+        )}
         <button
           onClick={handleConfirmClick}
-          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+          className={`bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded ${
+            !isApproved ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          disabled={!isApproved}
         >
           Confirm
         </button>
@@ -313,9 +345,6 @@ pabl0cks.eth,0.01`;
           } else {
             console.log("erc20Address: " + erc20Address);
             console.log("totalEtherOrTokens: " + totalEtherOrTokens.toString());
-            if (approvalTx && approvalTx.writeAsync) {
-              await approvalTx.writeAsync();
-            }
             tx = await multisendTokenTx.writeAsync();
           }
         } catch (error) {
@@ -336,7 +365,17 @@ pabl0cks.eth,0.01`;
       sendTransaction();
       setShouldSend(false);
     }
-  }, [shouldSend, tokenType, multisendEtherTx, multisendTokenTx, approvalTx, erc20Address, totalEtherOrTokens]);
+  }, [
+    shouldSend,
+    tokenType,
+    multisendEtherTx,
+    multisendTokenTx,
+    approvalTx,
+    erc20Address,
+    totalEtherOrTokens,
+    allowance,
+    needApproval,
+  ]);
 
   return (
     <div style={{ maxWidth: "53em" }} className="container mx-auto px-4 py-8">
@@ -419,6 +458,7 @@ pabl0cks.eth,0.01`;
                 setShowSummary(false);
                 setStep("Prepare");
                 setShowTransaction(false);
+                setIsApproved(false);
               }}
               className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 mt-8 rounded"
             >
