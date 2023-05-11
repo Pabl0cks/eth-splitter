@@ -154,8 +154,8 @@ pabl0cks.eth,0.01`;
     functionName: "allowance",
     args: [
       (address || "0x0").toString(),
-      /*Your contract address*/
-      "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      /*Your contract address -> localhost is 0x10962E2eD5D882982EcD4789636f14ABC9eFc066*/
+      "0x10962E2eD5D882982EcD4789636f14ABC9eFc066",
     ],
   });
 
@@ -170,8 +170,8 @@ pabl0cks.eth,0.01`;
     abi: erc20ABI,
     functionName: "approve",
     args: [
-      /*Your contract address*/
-      "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      /*Your contract address -> localhost is 0x10962E2eD5D882982EcD4789636f14ABC9eFc066*/
+      "0x10962E2eD5D882982EcD4789636f14ABC9eFc066",
       /*Quantity to approve*/
       ethers.utils.parseUnits(totalEtherOrTokens.toString(), tokenDecimals),
     ],
