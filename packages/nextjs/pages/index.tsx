@@ -378,9 +378,9 @@ pabl0cks.eth,0.01`;
   ]);
 
   return (
-    <div style={{ maxWidth: "53em" }} className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 sm:px-8 py-8 max-w-3xl">
       <h1 className="text-3xl mb-4">ETH Splitter</h1>
-      <div className="flex mb-6">
+      <div className="flex mb-6 flex-col sm:flex-row">
         <Step title="Prepare" isActive={step === "Prepare"} />
         <Step title="Confirm" isActive={step === "Confirm"} />
         <Step title="Sent" isActive={step === "Sent"} />
@@ -468,70 +468,78 @@ pabl0cks.eth,0.01`;
         )
       ) : (
         <>
-          <div className="mb-4">
-            <label htmlFor="token-type" className="block mb-2 font-bold">
-              Token Type
-            </label>
-            <select
-              id="token-type"
-              value={tokenType}
-              onChange={handleChange}
-              className="block w-full border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              {tokenTypes.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            {tokenType === "ERC-20" && (
-              <div className="mb-4 mt-4">
-                <label htmlFor="erc20-address" className="block mb-2 font-bold">
-                  Token Address
-                </label>
-                <input
-                  id="erc20-address"
-                  value={erc20Address}
-                  onChange={e => setErc20Address(e.target.value)}
-                  type="text"
-                  className="block w-full border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="Enter ERC-20 token address"
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="relative mb-4">
-            <label htmlFor="csv-data" className="block mb-2 font-bold">
-              CSV Data
-            </label>
-            <textarea
-              id="csv-data"
-              value={csvText}
-              onChange={e => setCsvText(e.target.value)}
-              className="block w-full border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500 cursor-text focus:outline-none"
-              rows={10}
-            />
-            <div className="absolute top-0 right-0 mt-2 mr-2">
-              <button onClick={handleExampleClick} className="text-gray-500 hover:text-gray-700">
-                <DocumentTextIcon className="w-6 h-6 inline-block mr-1" />
-                <span>See CSV sample</span>
-              </button>
-            </div>
-            <div className="absolute bottom-0 right-0 mb-2 mr-2">
-              <input accept=".csv" style={{ display: "none" }} id="csv-upload" type="file" onChange={handleCsvUpload} />
-              <label htmlFor="csv-upload" className="text-gray-500 hover:text-gray-700 cursor-pointer">
-                <ArrowUpOnSquareIcon className="w-6 h-6 inline-block mr-1" />
-                <span>Upload CSV</span>
+          <div className="bg-white rounded-lg p-4 sm:p-8 shadow-md">
+            <div className="mb-4">
+              <label htmlFor="token-type" className="block mb-2 font-bold">
+                Token Type
               </label>
+              <select
+                id="token-type"
+                value={tokenType}
+                onChange={handleChange}
+                className="block w-full border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-gray-100 p-3"
+              >
+                {tokenTypes.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              {tokenType === "ERC-20" && (
+                <div className="mb-4 mt-4">
+                  <label htmlFor="erc20-address" className="block mb-2 font-bold">
+                    Token Address
+                  </label>
+                  <input
+                    id="erc20-address"
+                    value={erc20Address}
+                    onChange={e => setErc20Address(e.target.value)}
+                    type="text"
+                    className="block w-full border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-gray-100 p-3"
+                    placeholder="Enter ERC-20 token address"
+                  />
+                </div>
+              )}
             </div>
+
+            <div className="relative mb-4">
+              <label htmlFor="csv-data" className="block mb-2 font-bold">
+                CSV Data
+              </label>
+              <textarea
+                id="csv-data"
+                value={csvText}
+                onChange={e => setCsvText(e.target.value)}
+                className="block w-full border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500 cursor-text bg-gray-100 p-3"
+                rows={10}
+              />
+              <div className="absolute top-0 right-0 mt-2 mr-2">
+                <button onClick={handleExampleClick} className="text-gray-500 hover:text-gray-700">
+                  <DocumentTextIcon className="w-6 h-6 inline-block mr-1" />
+                  <span>See CSV sample</span>
+                </button>
+              </div>
+              <div className="absolute bottom-0 right-0 mb-2 mr-2">
+                <input
+                  accept=".csv"
+                  style={{ display: "none" }}
+                  id="csv-upload"
+                  type="file"
+                  onChange={handleCsvUpload}
+                />
+                <label htmlFor="csv-upload" className="text-gray-500 hover:text-gray-700 cursor-pointer">
+                  <ArrowUpOnSquareIcon className="w-6 h-6 inline-block mr-1" />
+                  <span>Upload CSV</span>
+                </label>
+              </div>
+            </div>
+            <button
+              onClick={handleSendClick}
+              className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded w-full sm:w-auto"
+            >
+              Send
+            </button>
           </div>
-          <button
-            onClick={handleSendClick}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
-          >
-            Send
-          </button>
         </>
       )}
     </div>
