@@ -1,10 +1,10 @@
 # ETH/ERC-20 MassSplitter
 
-<kbd>![eth-mass-splitter](https://github-production-user-asset-6210df.s3.amazonaws.com/55535804/238662579-d04b65e5-cb8b-40cf-92ce-7a12398c3d58.png)</kbd>
-
 MassSplitter is a ETH/ERC-20 Token splitter that allows users to split their ETH or ERC-20 Tokens to a large amount of recipients in a single transaction. (Up to 150 per transaction).
 The difference with other multisenders is that MassSplitter is free to use, while others charge a fee per split.
 Users can upload a csv files with the format `ethaddress , amount` or write the list of recipients and tokens to send to each one into the text field.
+
+<kbd>![eth-mass-splitter](https://github-production-user-asset-6210df.s3.amazonaws.com/55535804/238662579-d04b65e5-cb8b-40cf-92ce-7a12398c3d58.png)</kbd>
 
 ## Demo Video
 
