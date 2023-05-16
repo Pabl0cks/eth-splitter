@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { BigNumber, ethers } from "ethers";
-import { useAccount } from "wagmi";
-import { erc20ABI } from "wagmi";
-import { useBalance, useContractRead, useContractWrite, useProvider } from "wagmi";
+import { erc20ABI, useAccount, useBalance, useContractRead, useContractWrite, useProvider } from "wagmi";
 import {
   ArrowUpOnSquareIcon,
   ClipboardDocumentListIcon,
@@ -10,8 +8,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { Address } from "~~/components/scaffold-eth";
-import { useAccountBalance } from "~~/hooks/scaffold-eth";
-import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
+import { useAccountBalance, useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
 
 const tokenTypes = [
   {
